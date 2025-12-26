@@ -1,10 +1,10 @@
-name: Live Relay Jalur Belakang
+name: Live Relay M3U8
 
 on:
   workflow_dispatch:
     inputs:
-      id_video:
-        description: 'Isi ID Video saja (Contoh: KzsbAUx6mAE)'
+      m3u8_url:
+        description: 'Tempel Link .m3u8 Di Sini'
         required: true
       kunci_rtmp:
         description: 'Tempel Stream Key YouTube Kamu'
@@ -14,18 +14,12 @@ jobs:
   streaming:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Alat
-        run: |
-          sudo apt update
-          sudo apt install ffmpeg -y
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
+      - name: Install FFmpeg
+        run: sudo apt update && sudo apt install ffmpeg -y
 
-      - name: Eksekusi Relay
+      - name: Mulai Streaming
         run: |
-          # Kita pakai trik 'ios' karena biasanya proteksi bot-nya lebih lemah
-          VIDEO_URL=$(yt-dlp --extractor-args "youtube:player_client=ios" -f "best[height<=720]" -g "https://www.youtube.com/watch?v=${{ github.event.inputs.id_video }}")
-          
-          ffmpeg -re -i "$VIDEO_URL" \
+          # Menggunakan copy codec agar ringan dan kualitas asli
+          ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
           -c:v copy -c:a copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
           

@@ -1,34 +1,35 @@
-name: Bot Live Multi Platform
+name: Bot Live Anti Blokir
 
 on:
   workflow_dispatch:
     inputs:
       link_youtube:
-        description: '1. Tempel Link Video YouTube'
+        description: '1. Link Video YouTube'
         required: true
       url_rtmp:
-        description: '2. URL RTMP (Default YouTube)'
+        description: '2. URL RTMP'
         default: 'rtmp://a.rtmp.youtube.com/live2/'
         required: true
       kunci_rtmp:
-        description: '3. Tempel Kunci Streaming (Stream Key)'
+        description: '3. Stream Key'
         required: true
 
 jobs:
   streaming:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Alat
+      - name: Persiapan Server
         run: |
           sudo apt update
           sudo apt install ffmpeg -y
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
 
-      - name: Jalankan Live
+      - name: Mulai Streaming
         run: |
-          # Mengambil link video asli dari YouTube lalu dikirim ke RTMP
-          VIDEO_URL=$(yt-dlp -f "best[height<=720]" -g "${{ github.event.inputs.link_youtube }}")
+          # Kita pakai User-Agent browser Chrome asli biar gak diblokir
+          VIDEO_URL=$(yt-dlp --no-check-certificates --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -f "best[height<=720]" -g "${{ github.event.inputs.link_youtube }}")
+          
           ffmpeg -re -i "$VIDEO_URL" \
           -c:v libx264 -preset veryfast -b:v 2500k \
           -c:a aac -ar 44100 -f flv "${{ github.event.inputs.url_rtmp }}${{ github.event.inputs.kunci_rtmp }}"

@@ -1,17 +1,13 @@
-name: Live Relay M3U8 3 Kolom
+name: Live Relay Video + Auto Silent
 
 on:
   workflow_dispatch:
     inputs:
       m3u8_url:
-        description: '1. Tempel Link .m3u8'
-        required: true
-      rtmp_url:
-        description: '2. URL RTMP (Contoh: rtmp://a.rtmp.youtube.com/live2/)'
-        default: 'rtmp://a.rtmp.youtube.com/live2/'
+        description: '1. Tempel Link .m3u8 Video'
         required: true
       kunci_rtmp:
-        description: '3. Tempel Stream Key'
+        description: '2. Tempel Stream Key YouTube'
         required: true
 
 jobs:
@@ -21,9 +17,13 @@ jobs:
       - name: Install FFmpeg
         run: sudo apt update && sudo apt install ffmpeg -y
 
-      - name: Mulai Streaming
+      - name: Jalankan Live (Suara Kosong Otomatis)
         run: |
-          # Perintah ini menggabungkan kolom 2 dan kolom 3 secara otomatis
+          # Perintah sakti anullsrc membuat suara hening/kosong secara otomatis
           ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
-          -c:v copy -c:a copy -f flv "${{ github.event.inputs.rtmp_url }}${{ github.event.inputs.kunci_rtmp }}"
+          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+          -c:v libx264 -preset veryfast -b:v 2500k \
+          -c:a aac -b:a 128k \
+          -map 0:v:0 -map 1:a:0 -shortest -f flv \
+          "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
           

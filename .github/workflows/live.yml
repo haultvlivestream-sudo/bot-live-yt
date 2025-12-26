@@ -1,13 +1,17 @@
-name: Live Relay M3U8
+name: Live Relay M3U8 3 Kolom
 
 on:
   workflow_dispatch:
     inputs:
       m3u8_url:
-        description: 'Tempel Link .m3u8 Di Sini'
+        description: '1. Tempel Link .m3u8'
+        required: true
+      rtmp_url:
+        description: '2. URL RTMP (Contoh: rtmp://a.rtmp.youtube.com/live2/)'
+        default: 'rtmp://a.rtmp.youtube.com/live2/'
         required: true
       kunci_rtmp:
-        description: 'Tempel Stream Key YouTube Kamu'
+        description: '3. Tempel Stream Key'
         required: true
 
 jobs:
@@ -19,7 +23,7 @@ jobs:
 
       - name: Mulai Streaming
         run: |
-          # Menggunakan copy codec agar ringan dan kualitas asli
+          # Perintah ini menggabungkan kolom 2 dan kolom 3 secara otomatis
           ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
-          -c:v copy -c:a copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
+          -c:v copy -c:a copy -f flv "${{ github.event.inputs.rtmp_url }}${{ github.event.inputs.kunci_rtmp }}"
           

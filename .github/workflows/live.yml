@@ -4,36 +4,39 @@ on:
   workflow_dispatch:
     inputs:
       m3u8_url:
-        description: '1. Tempel Link .m3u8 Video (CCTV)'
+        description: '1. Link .m3u8 Video (CCTV)'
         required: true
       audio_url:
-        description: '2. Tempel Link Audio/Musik (m3u8/mp3/aac)'
+        description: '2. Link YouTube Audio atau Link MP3'
         required: true
       kunci_rtmp:
-        description: '3. Tempel Stream Key YouTube'
+        description: '3. Stream Key YouTube'
         required: true
 
 jobs:
   streaming:
     runs-on: ubuntu-latest
     steps:
-      - name: Install FFmpeg
+      - name: Install FFmpeg & yt-dlp
         run: |
           sudo apt update
           sudo apt install ffmpeg -y
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
 
       - name: Persiapkan Cookies
         run: |
-          # Mengambil isi secret YT_COOKIES dan menyimpannya ke file cookies.txt
           echo "${{ secrets.YT_COOKIES }}" > cookies.txt
-          
+
       - name: Jalankan Live (Video + Audio Custom)
         run: |
-          # Menjalankan FFmpeg dengan header cookies jika diperlukan untuk input
-          # Catatan: FFmpeg menggunakan opsi -headers untuk menyuntikkan cookies
-          
-          ffmpeg -re -headers "Cookie: $(cat cookies.txt | tr -d '\n')\r\n" -i "${{ github.event.inputs.m3u8_url }}" \
-          -re -i "${{ github.event.inputs.audio_url }}" \
+          # 1. Ambil URL audio asli jika input adalah link YouTube, 
+          # jika link MP3 biasa, dia akan tetap menggunakan link tersebut.
+          RAW_AUDIO_URL=$(yt-dlp -x -g --cookies cookies.txt "${{ github.event.inputs.audio_url }}" || echo "${{ github.event.inputs.audio_url }}")
+
+          # 2. Jalankan FFmpeg
+          ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
+          -re -i "$RAW_AUDIO_URL" \
           -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \

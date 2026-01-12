@@ -22,16 +22,17 @@ jobs:
           sudo apt update
           sudo apt install ffmpeg -y
 
+      - name: Persiapkan Cookies
+        run: |
+          # Mengambil isi secret YT_COOKIES dan menyimpannya ke file cookies.txt
+          echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+          
       - name: Jalankan Live (Video + Audio Custom)
         run: |
-          # Penjelasan Perintah FFmpeg:
-          # -i (input 0) : Sumber Video
-          # -i (input 1) : Sumber Audio
-          # -map 0:v:0  : Mengambil video dari input pertama
-          # -map 1:a:0  : Mengambil audio dari input kedua
-          # -shortest   : Berhenti jika salah satu input (video/audio) habis
+          # Menjalankan FFmpeg dengan header cookies jika diperlukan untuk input
+          # Catatan: FFmpeg menggunakan opsi -headers untuk menyuntikkan cookies
           
-          ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
+          ffmpeg -re -headers "Cookie: $(cat cookies.txt | tr -d '\n')\r\n" -i "${{ github.event.inputs.m3u8_url }}" \
           -re -i "${{ github.event.inputs.audio_url }}" \
           -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
           -pix_fmt yuv420p -g 60 \

@@ -30,17 +30,21 @@ jobs:
 
       - name: Jalankan Live (Video + Audio Custom)
         run: |
-          # 1. Ambil URL audio asli jika input adalah link YouTube, 
-          # jika link MP3 biasa, dia akan tetap menggunakan link tersebut.
+          # 1. Ambil URL audio asli (jika dari YouTube)
           RAW_AUDIO_URL=$(yt-dlp -x -g --cookies cookies.txt "${{ github.event.inputs.audio_url }}" || echo "${{ github.event.inputs.audio_url }}")
 
-          # 2. Jalankan FFmpeg
-          ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
-          -re -i "$RAW_AUDIO_URL" \
-          -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
-          -pix_fmt yuv420p -g 60 \
-          -c:a aac -b:a 128k -ar 44100 \
-          -map 0:v:0 -map 1:a:0 \
-          -shortest -f flv \
-          "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
+          # 2. Jalankan FFmpeg dengan Logika Anti-Putus
+          # -reconnect flags: Mencoba menyambung kembali jika link m3u8 mati mendadak
+          # -stream_loop -1: Memutar audio secara terus-menerus (looping)
           
+          ffmpeg -re \
+            -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+            -i "${{ github.event.inputs.m3u8_url }}" \
+            -stream_loop -1 -re -i "$RAW_AUDIO_URL" \
+            -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
+            -pix_fmt yuv420p -g 60 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -map 0:v:0 -map 1:a:0 \
+            -f flv \
+            "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
+            

@@ -1,13 +1,16 @@
-name: Live Relay Video + Auto Silent
+name: Live Relay Video + Custom Audio
 
 on:
   workflow_dispatch:
     inputs:
       m3u8_url:
-        description: '1. Tempel Link .m3u8 Video'
+        description: '1. Tempel Link .m3u8 Video (CCTV)'
+        required: true
+      audio_url:
+        description: '2. Tempel Link Audio/Musik (m3u8/mp3/aac)'
         required: true
       kunci_rtmp:
-        description: '2. Tempel Stream Key YouTube'
+        description: '3. Tempel Stream Key YouTube'
         required: true
 
 jobs:
@@ -15,15 +18,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install FFmpeg
-        run: sudo apt update && sudo apt install ffmpeg -y
-
-      - name: Jalankan Live (Suara Kosong Otomatis)
         run: |
-          # Perintah sakti anullsrc membuat suara hening/kosong secara otomatis
+          sudo apt update
+          sudo apt install ffmpeg -y
+
+      - name: Jalankan Live (Video + Audio Custom)
+        run: |
+          # Penjelasan Perintah FFmpeg:
+          # -i (input 0) : Sumber Video
+          # -i (input 1) : Sumber Audio
+          # -map 0:v:0  : Mengambil video dari input pertama
+          # -map 1:a:0  : Mengambil audio dari input kedua
+          # -shortest   : Berhenti jika salah satu input (video/audio) habis
+          
           ffmpeg -re -i "${{ github.event.inputs.m3u8_url }}" \
-          -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
-          -c:v libx264 -preset veryfast -b:v 2500k \
-          -c:a aac -b:a 128k \
-          -map 0:v:0 -map 1:a:0 -shortest -f flv \
+          -re -i "${{ github.event.inputs.audio_url }}" \
+          -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
+          -pix_fmt yuv420p -g 60 \
+          -c:a aac -b:a 128k -ar 44100 \
+          -map 0:v:0 -map 1:a:0 \
+          -shortest -f flv \
           "rtmp://a.rtmp.youtube.com/live2/${{ github.event.inputs.kunci_rtmp }}"
           
